@@ -61,7 +61,17 @@ async function badge() {
 }
 async function warm(snapshot: Snapshot, epoch: number) {
   const state = await readState(), doi = snapshot.metadata.doi;
-  if (!doi || !state.settings.crossref || !await chrome.permissions.contains({ origins: [CROSSREF_ORIGIN] })) return;
+  const setNote = async (note: string) => updateState(s => {
+    if (epoch !== generation) return;
+    const current = s.snapshots.find(x => x.pageUrl === snapshot.pageUrl && x.capturedAt === snapshot.capturedAt);
+    if (current) current.lookupNote = note;
+  });
+  if (!doi) { await setNote('页面未提取到可靠 DOI，无法进行 Crossref 补查'); return; }
+  if (!state.settings.crossref) { await setNote('Crossref 补查未开启，请在设置中开启后刷新文章页'); return; }
+  if (!await chrome.permissions.contains({ origins: [CROSSREF_ORIGIN] })) {
+    await setNote('Crossref 尚未授权，请在设置中授权 DOI 补查后刷新文章页'); return;
+  }
+  await setNote('Crossref 正在补查，请稍候再下载');
   let note = '', data: unknown = state.crossrefCache[doi]?.data;
   if (!data) {
     let lookup = lookups.get(doi);
@@ -133,7 +143,19 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   const operation = (async () => {
     await preparePdf(item.finalUrl || item.url).catch(() => {});
     const state = await readState();
-    return decide(item, state.settings, state.snapshots);
+    const initial = await decide(item, state.settings, state.snapshots);
+    // A page lookup may still be running when the user clicks PDF. Reconcile only
+    // the already-matched article, never an active tab or a guessed DOI.
+    if (initial && !initial.proposed && initial.metadata?.doi) {
+      const snapshot = state.snapshots.find(s => s.pageUrl === initial.pageUrl && s.metadata.doi === initial.metadata?.doi);
+      if (snapshot) {
+        // Leave room for storage/decision within the outer 1900 ms deadline.
+        await bounded(warm(snapshot, epoch).catch(() => {}), () => undefined, 1200);
+        const refreshed = await readState();
+        return decide(item, refreshed.settings, refreshed.snapshots);
+      }
+    }
+    return initial;
   })().catch(() => fallback());
   void bounded(operation, fallback).then(record => {
     // Always release the browser before persisting history.

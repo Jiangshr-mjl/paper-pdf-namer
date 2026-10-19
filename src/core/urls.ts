@@ -9,7 +9,9 @@ export function isAmsArticlePdf(pdf: string, page: string): boolean {
     if (p.origin !== 'https://journals.ametsoc.org' || d.origin !== p.origin || p.username || p.password || d.username || d.password || p.search || d.search) return false;
     const article = p.pathname.match(/^\/view\/journals\/([^/]+\/\d+\/[^/]+\/[^/]+)\.xml$/);
     if (!article) return false;
-    return d.pathname === `/view/journals/${article[1]}.pdf` || d.pathname === `/downloadpdf/journals/${article[1]}.xml`;
+    return d.pathname === `/view/journals/${article[1]}.pdf`
+      || d.pathname === `/downloadpdf/journals/${article[1]}.xml`
+      || d.pathname === `/downloadpdf/view/journals/${article[1]}.pdf`;
   } catch { return false; }
 }
 export function doiValue(value: string): string {

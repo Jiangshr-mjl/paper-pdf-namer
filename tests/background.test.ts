@@ -31,6 +31,46 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('MV3 download and storage lifecycle', () => {
+  it('waits briefly for exact DOI metadata when download races the page lookup', async () => {
+    data.settings.crossref = true;
+    const s = snapshot();
+    const stem = 'apme/42/9/1520-0450_2003_042_1273_pacoau_2.0.co_2';
+    s.pageUrl = s.canonicalUrl = `https://journals.ametsoc.org/view/journals/${stem}.xml`;
+    s.links = [{ url: `https://journals.ametsoc.org/downloadpdf/view/journals/${stem}.pdf`, kind: 'Article', label: '' }];
+    Object.assign(s.metadata, { doi: '10.1175/1520-0450(2003)042<1273:pacoau>2.0.co;2', journal: '', journalFull: 'Journal of Applied Meteorology', author: '', year: '2003', title: "Patterns and Causes of Atlanta's Urban Heat Island–Initiated Precipitation" });
+    data.snapshots = [s];
+    let complete!: (value: unknown) => void;
+    const fetchMock = vi.fn(() => new Promise(resolve => { complete = resolve; })); vi.stubGlobal('fetch', fetchMock);
+    const item = Object.assign(download(1), { url: s.links[0].url, finalUrl: s.links[0].url, referrer: s.pageUrl });
+    const cb = vi.fn(); listeners.determine(item, cb); await settle();
+    expect(cb).not.toHaveBeenCalled();
+    complete({ ok: true, json: async () => ({ message: { DOI: s.metadata.doi, type: 'journal-article', title: [s.metadata.title], author: [{ family: 'Dixon' }], 'container-title': ['Journal of Applied Meteorology'], 'short-container-title': ['J. Appl. Meteor.'] } }) });
+    await settle();
+    expect(cb).toHaveBeenCalledExactlyOnceWith({ filename: `J Appl Meteor - 2003 - Dixon - ${s.metadata.title}.pdf`, conflictAction: 'uniquify' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('releases a download once when DOI lookup remains pending', async () => {
+    data.settings.crossref = true;
+    const s = snapshot(); s.metadata.doi = '10.1038/test'; s.metadata.author = ''; data.snapshots = [s];
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    const cb = vi.fn(); listeners.determine(download(1), cb);
+    await new Promise(r => setTimeout(r, 1400)); await settle();
+    expect(cb).toHaveBeenCalledExactlyOnceWith();
+    expect(data.records[0].reason).toContain('Crossref 正在补查');
+  });
+  it.each(['doi', 'disabled', 'permission'] as const)('explains why Crossref cannot run: %s', async cause => {
+    data.settings.crossref = cause !== 'disabled';
+    const s = snapshot(); s.metadata.author = ''; s.metadata.doi = cause === 'doi' ? '' : '10.1038/test';
+    vi.mocked(chrome.permissions.contains as (permissions: chrome.permissions.Permissions) => Promise<boolean>)
+      .mockImplementation(async p => cause !== 'permission' || !p.origins?.includes('https://api.crossref.org/*'));
+    const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);
+    await new Promise(resolve => listeners.message({ type: 'SNAPSHOT', snapshot: s }, { id: 'test', frameId: 0, tab: { id: 1 }, url: s.pageUrl }, resolve));
+    await settle();
+    const expected = { doi: '未提取到可靠 DOI', disabled: '补查未开启', permission: '尚未授权' }[cause];
+    expect(data.snapshots[0].lookupNote).toContain(expected);
+    listeners.determine(download(1), vi.fn()); await settle();
+    expect(data.records[0].reason).toContain(expected); expect(fetchMock).not.toHaveBeenCalled();
+  });
   it('supplies a default format for old settings and rejects invalid updates atomically', async () => {
     delete data.settings.namingTemplate;
     expect((await message('GET_STATE')).settings.namingTemplate).toBe('{journal} - {year} - {author} - {title}');

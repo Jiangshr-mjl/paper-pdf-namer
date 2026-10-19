@@ -14,11 +14,11 @@
 
 ## 安装：解压 → 加载 → 授权
 
-当前版本 **v0.1.5**，尚未上架扩展商店，需要手动加载一次。
+当前版本为 **v0.1.7**，尚未上架扩展商店，需要手动加载一次。
 
 ### 第一步：解压安装包
 
-前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/latest)，下载 `paper-pdf-namer-0.1.5.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
+前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/tag/v0.1.7)，下载 `paper-pdf-namer-0.1.7.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
 
 - 解压后应能看到 `manifest.json`、`popup.html`、`icons` 等文件或文件夹。
 - 不要直接选择 ZIP 文件，也不要选择包裹在外面的上一级文件夹。
@@ -112,7 +112,9 @@
 
 ACP 的标准 PDF 直链也可尝试自动命名；其他网站建议先打开文章页。PDF 查看器内置下载按钮、另存为以及部分网站跳转仍需按实际场景确认。
 
-v0.1.5 补充 AMS 同文章路径的 `.xml` 页面与正文下载链接识别。如果旧版提示“未确认正文或附件类型”，更新并重新加载插件后，请刷新文章页再下载。
+**v0.1.7 修复了本次 AMS 论文自动命名问题。** 用户于 2026-10-19 确认：重新加载 0.1.7 并刷新文章页后，[这篇 AMS 论文](https://journals.ametsoc.org/view/journals/apme/42/9/1520-0450_2003_042_1273_pacoau_2.0.co_2.xml)成功重命名。该结果是用户实际下载反馈，不代表所有 AMS 页面或下载入口均已验证。
+
+从旧版更新：将新版解压到原安装目录，在 `edge://extensions` 或 `chrome://extensions` 重新加载插件，再刷新文章页。保留现有设置；请确保 AMS 和 DOI 补查已授权。新版补全了 AMS 正文链接识别，并在命名时短暂等待 DOI 补查。网络较慢时仍保留原名并显示原因，避免阻塞下载。
 
 想先试一次？可以打开这篇已实测的 [ACP 论文页面](https://acp.copernicus.org/articles/26/14303/2026/)，授权并刷新后下载正文。预期名称以 `Atmos Chem Phys - 2026 - Xu - Cloud vertical structure…` 开头。
 
