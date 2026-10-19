@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <mask id="cloud" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="white"/>
+      <path d="M35 103C23 103 15 94 15 82c0-11 7-20 17-23v-3c0-18 13-32 30-32 13 0 24 8 28 20 14-1 25 10 25 23 0 7-3 13-7 17-1 11-9 19-21 19Z" fill="black"/>
+    </mask>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#193D59" mask="url(#cloud)"/>
+  <path d="M48 40h21l15 15v36a5 5 0 0 1-5 5H48a5 5 0 0 1-5-5V45a5 5 0 0 1 5-5Z" fill="#193D59"/>
+  <path d="M69 40v11a4 4 0 0 0 4 4h11Z" fill="#83B6C9"/>
+  <path d="M52 65h22M52 75h17M52 85h11" fill="none" stroke="#EDF5F8" stroke-width="4" stroke-linecap="round"/>
+</svg>

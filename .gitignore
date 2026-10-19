@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+dist/
+release/
+test-results/
+downloads/
+.browser-profile*/
+.browser-binaries/
+design-preview/
+.publish-tools/
+.env
+.env.*

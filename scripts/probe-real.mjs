@@ -1,0 +1,10 @@
+import { JSDOM } from 'jsdom';
+import { mkdir, writeFile } from 'node:fs/promises';
+const url = process.argv[2] || 'https://acp.copernicus.org/articles/26/14303/2026/';
+const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
+const html = await response.text();
+await mkdir('test-results', { recursive: true });
+await writeFile('test-results/real-article.html', html);
+const doc = new JSDOM(html, { url }).window.document;
+console.log(JSON.stringify({ url, metadata: [...doc.querySelectorAll('meta[name],meta[property]')].map(n => ({name:n.getAttribute('name') || n.getAttribute('property'),value:n.getAttribute('content')})).filter(n=>/citation|dc\.|prism/i.test(n.name)), jsonld:[...doc.querySelectorAll('script[type="application/ld+json"]')].map(n=>n.textContent), links:[...doc.querySelectorAll('a[href]')].filter(n=>/pdf|xml|bibtex|ris/i.test(n.href)).slice(0,25).map(n=>({url:n.href,text:n.textContent.trim().slice(0,100)})) }, null, 2));
