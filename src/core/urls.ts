@@ -1,6 +1,17 @@
 export function urlKey(value: string): string {
   try { const u = new URL(value); u.hash = ''; return u.href; } catch { return ''; }
 }
+// AMS article routes retain journal/volume/issue/article identity when serving a PDF.
+// Restrict this to the publisher host and exact article stem, never references or figures.
+export function isAmsArticlePdf(pdf: string, page: string): boolean {
+  try {
+    const p = new URL(page), d = new URL(pdf);
+    if (p.origin !== 'https://journals.ametsoc.org' || d.origin !== p.origin || p.username || p.password || d.username || d.password || p.search || d.search) return false;
+    const article = p.pathname.match(/^\/view\/journals\/([^/]+\/\d+\/[^/]+\/[^/]+)\.xml$/);
+    if (!article) return false;
+    return d.pathname === `/view/journals/${article[1]}.pdf` || d.pathname === `/downloadpdf/journals/${article[1]}.xml`;
+  } catch { return false; }
+}
 export function doiValue(value: string): string {
   let s = value.trim();
   try { s = decodeURIComponent(s); } catch { /* keep undecodable source */ }

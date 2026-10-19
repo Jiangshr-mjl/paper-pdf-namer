@@ -1,6 +1,6 @@
 import { emptyMetadata, type Kind, type PaperLink, type Snapshot } from '../types';
 import { abbreviation } from './journals';
-import { doiFromUrl, doiValue, urlKey } from './urls';
+import { doiFromUrl, doiValue, urlKey, isAmsArticlePdf } from './urls';
 
 export function readableTitle(raw: string, doc: Document): { text: string; unsafe: boolean } {
   const el = doc.createElement('template'); el.innerHTML = raw;
@@ -35,12 +35,13 @@ export function classifyLink(anchor: HTMLAnchorElement, primary: Set<string>, pa
   const text = `${anchor.textContent || ''} ${anchor.title} ${anchor.getAttribute('aria-label') || ''}`;
   const context = anchor.closest('[id*="supplement"], [id*="Supplement"], [class*="supplement"], [id*="peer-review"], [id*="PeerReview"]');
   const hint = text + ' ' + url.pathname + ' ' + (context?.id || '') + ' ' + (context?.className || '');
-  const isPdf = /\.pdf$/i.test(url.pathname) || /\bPDF\b/i.test(text) || anchor.type === 'application/pdf' || primary.has(key);
+  const amsBody = isAmsArticlePdf(href, page);
+  const isPdf = /\.pdf$/i.test(url.pathname) || /\bPDF\b/i.test(text) || anchor.type === 'application/pdf' || primary.has(key) || amsBody;
   if (!isPdf) return;
   let kind: Kind = 'Unknown';
   if (/peer[\s_-]*review|review[\s_-]*history|reviewer[\s_-]*(?:report|comment)/i.test(hint)) kind = 'PeerReview';
   else if (/supplement|supporting[\s_-]*(?:information|material)|MOESM\d+|\bsuppl\b|\.s\d+\./i.test(hint)) kind = 'SI';
-  else if (primary.has(key) || (doi && doiFromUrl(href) === doi)) kind = 'Article';
+  else if (primary.has(key) || amsBody || (doi && doiFromUrl(href) === doi)) kind = 'Article';
   else {
     // Nature article PDF and Copernicus /article.pdf; match the article path, not arbitrary PDF links in references.
     const article = new URL(page);

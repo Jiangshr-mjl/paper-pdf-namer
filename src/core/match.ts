@@ -1,5 +1,5 @@
 import { TTL, type DownloadLike, type Kind, type Metadata, type Snapshot } from '../types';
-import { doiFromUrl, urlKey } from './urls';
+import { doiFromUrl, urlKey, isAmsArticlePdf } from './urls';
 import { abbreviation } from './journals';
 export function isPdf(item: DownloadLike): boolean {
   if (item.mime && !['application/pdf', 'application/octet-stream', 'binary/octet-stream', ''].includes(item.mime.toLowerCase().split(';')[0])) return false;
@@ -16,8 +16,11 @@ export function matchDownload(item: DownloadLike, snapshots: Snapshot[], now = D
     const ref = urlKey(item.referrer);
     const referenceMatches = !!ref && [urlKey(s.pageUrl), urlKey(s.canonicalUrl)].includes(ref);
     const doiMatches = !!s.metadata.doi && dois.includes(s.metadata.doi);
-    if (!links.length && !referenceMatches && !doiMatches) continue;
-    for (const l of links.length ? links : [{ kind: doiMatches ? 'Article' as const : 'Unknown' as const, label: '' }]) {
+    // Handles snapshots without PDF links and downloads begun in a PDF viewer.
+    // Explicit Unknown links remain conservative until the article page has been refreshed.
+    const amsBody = urls.some(url => isAmsArticlePdf(url, s.canonicalUrl) || isAmsArticlePdf(url, s.pageUrl));
+    if (!links.length && !referenceMatches && !doiMatches && !amsBody) continue;
+    for (const l of links.length ? links : [{ kind: doiMatches || amsBody ? 'Article' as const : 'Unknown' as const, label: '' }]) {
       candidates.push({ metadata: s.metadata, kind: l.kind, label: l.label, pageUrl: s.pageUrl, note: s.lookupNote });
     }
   }

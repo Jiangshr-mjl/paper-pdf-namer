@@ -14,11 +14,11 @@
 
 ## 安装：解压 → 加载 → 授权
 
-当前版本 **v0.1.4**，尚未上架扩展商店，需要手动加载一次。
+当前版本 **v0.1.5**，尚未上架扩展商店，需要手动加载一次。
 
 ### 第一步：解压安装包
 
-前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/latest)，下载 `paper-pdf-namer-0.1.4.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
+前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/latest)，下载 `paper-pdf-namer-0.1.5.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
 
 - 解压后应能看到 `manifest.json`、`popup.html`、`icons` 等文件或文件夹。
 - 不要直接选择 ZIP 文件，也不要选择包裹在外面的上一级文件夹。
@@ -111,6 +111,8 @@
 - **其他文件**：非 PDF 附件保持原名。
 
 ACP 的标准 PDF 直链也可尝试自动命名；其他网站建议先打开文章页。PDF 查看器内置下载按钮、另存为以及部分网站跳转仍需按实际场景确认。
+
+v0.1.5 补充 AMS 同文章路径的 `.xml` 页面与正文下载链接识别。如果旧版提示“未确认正文或附件类型”，更新并重新加载插件后，请刷新文章页再下载。
 
 想先试一次？可以打开这篇已实测的 [ACP 论文页面](https://acp.copernicus.org/articles/26/14303/2026/)，授权并刷新后下载正文。预期名称以 `Atmos Chem Phys - 2026 - Xu - Cloud vertical structure…` 开头。
 
