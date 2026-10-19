@@ -12,7 +12,7 @@ export async function decide(item: DownloadLike, settings: Settings, snapshots: 
   if (m.kind === 'Unknown') checked.reasons.push('未确认正文或附件类型');
   if ((m.kind === 'SI' || m.kind === 'PeerReview') && !m.label) checked.reasons.push('缺少原附件标识');
   if (checked.reasons.length) { record.reason = [...checked.reasons, m.note].filter(Boolean).join('；'); return record; }
-  try { record.proposed = await filename({ ...checked.metadata, kind: m.kind, label: m.label }, parentPath(item.filename)); }
+  try { record.proposed = await filename({ ...checked.metadata, kind: m.kind, label: m.label }, parentPath(item.filename), settings.namingTemplate); }
   catch (error) { record.reason = (error as Error).message; }
   return record;
 }

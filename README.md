@@ -14,11 +14,11 @@
 
 ## 安装：解压 → 加载 → 授权
 
-当前版本 **v0.1.3**，尚未上架扩展商店，需要手动加载一次。
+当前版本 **v0.1.4**，尚未上架扩展商店，需要手动加载一次。
 
 ### 第一步：解压安装包
 
-前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/latest)，下载 `paper-pdf-namer-0.1.3.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
+前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/latest)，下载 `paper-pdf-namer-0.1.4.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
 
 - 解压后应能看到 `manifest.json`、`popup.html`、`icons` 等文件或文件夹。
 - 不要直接选择 ZIP 文件，也不要选择包裹在外面的上一级文件夹。
@@ -77,6 +77,29 @@
 5. 到文件管理器中，用复制的名称手动重命名已下载文件。
 
 插件不会因此重复下载、删除或自动改动已有文件。
+
+## 自己设置文件命名格式
+
+打开插件的 **“设置与网站授权” → “常规设置” → “自定义命名格式”**。
+
+1. 选择一个常用格式，或在“格式模板”中输入自己的排列方式。
+2. 查看下方即时生成的示例名称。
+3. 点击 **“保存命名格式”**，下次下载生效。
+
+<img src="docs/images/custom-format.png" alt="自定义命名格式与即时预览" width="800">
+
+| 字段 | 含义 |
+| --- | --- |
+| `{journal}` | 期刊缩写 |
+| `{year}` | 引用年份 |
+| `{author}` | 第一作者姓氏 |
+| `{title}` | 原文标题，必须保留 |
+
+例如，输入 `{author}_{year}_{title}` 会生成 `Xu_2026_Cloud vertical structure across China.pdf`。也可使用 `{title} [{journal}]` 或仅 `{title}`。
+
+字段按钮可在光标处插入字段。每个字段最多使用一次；`.pdf` 和附件的 `SI / PeerReview` 后缀会自动添加，不用手动输入。点击 **“恢复默认格式”** 可恢复原有规则。
+
+已有文件不会自动改名；弹窗的手动补全预览会使用当前保存的格式。自动命名前仍会核实期刊、年份、姓氏和标题，省略字段不会绕过信息核实。
 
 ## 支持哪些论文？
 

@@ -17,7 +17,8 @@ export interface RecordItem {
   metadata?: Metadata; kind: Kind; label: string; pageUrl?: string;
   draft?: { journal: string; year: string; author: string; title: string; kind: Kind; label: string };
 }
-export interface Settings { enabled: boolean; crossref: boolean; abbreviations: Record<string, string> }
-export const DEFAULT_SETTINGS: Settings = { enabled: true, crossref: true, abbreviations: {} };
+export const DEFAULT_TEMPLATE = '{journal} - {year} - {author} - {title}';
+export interface Settings { enabled: boolean; crossref: boolean; abbreviations: Record<string, string>; namingTemplate?: string }
+export const DEFAULT_SETTINGS: Settings = { enabled: true, crossref: true, abbreviations: {}, namingTemplate: DEFAULT_TEMPLATE };
 export const TTL = 7 * 24 * 60 * 60 * 1000;
 export const emptyMetadata = (): Metadata => ({ journal: '', journalFull: '', issn: [], year: '', author: '', title: '', doi: '', volume: '', sources: {}, issues: [] });

@@ -31,6 +31,15 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('MV3 download and storage lifecycle', () => {
+  it('supplies a default format for old settings and rejects invalid updates atomically', async () => {
+    delete data.settings.namingTemplate;
+    expect((await message('GET_STATE')).settings.namingTemplate).toBe('{journal} - {year} - {author} - {title}');
+    await message('SETTINGS', { settings: { namingTemplate: '{author}_{title}' } });
+    expect(data.settings.namingTemplate).toBe('{author}_{title}');
+    expect((await message('SETTINGS', { settings: { namingTemplate: '{unknown}', enabled: false } })).error).toBeTruthy();
+    expect(data.settings.namingTemplate).toBe('{author}_{title}'); expect(data.settings.enabled).toBe(true);
+    await message('CLEAR'); expect(data.settings.namingTemplate).toBe('{author}_{title}');
+  });
   it('warms a direct ACP PDF tab from its publisher without a content script or Crossref', async () => {
     data.snapshots = [];
     const html = readFileSync(pathResolve('tests/fixtures/acp-real-2026.html'), 'utf8');

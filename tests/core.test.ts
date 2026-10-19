@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { webcrypto } from 'node:crypto';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { filename, clean } from '../src/core/naming';
+import { filename, clean, validateTemplate } from '../src/core/naming';
 import { abbreviation } from '../src/core/journals';
 import { extract, readableTitle } from '../src/core/extract';
 import { mergeCrossref } from '../src/core/crossref';
@@ -20,6 +20,29 @@ function item(snapshot: Snapshot, index = 0): DownloadLike {
 }
 afterEach(() => vi.useRealTimers());
 describe('skill-compatible naming', () => {
+  it('supports reordered and omitted fields, literal text and safe separators', async () => {
+    const m = { journal: 'Nature', year: '2026', author: 'de Roode', title: 'A long-term study' };
+    expect(await filename(m, '', '{author}_{year}_{title}')).toBe('de Roode_2026_A long-term study.pdf');
+    expect(await filename(m, '', '{title} [{journal}]')).toBe('A long-term study [Nature].pdf');
+    expect(await filename(m, '', '{year}/{title}')).toBe('2026／A long-term study.pdf');
+  });
+  it('rejects malformed, unknown, repeated and extension-bearing formats', () => {
+    for (const value of ['', '{doi} - {title}', '{title', '{{title}}', '{author}', '{title} {title}', '{author}{author}{title}', '{title}.pdf', '{title}\n']) expect(() => validateTemplate(value)).toThrow();
+  });
+  it('keeps attachment identifiers and only truncates the title wherever it appears', async () => {
+    const m = { journal: 'Nature', year: '2026', author: 'García-López', title: '长标题'.repeat(200), kind: 'SI' as const, label: 'S1' };
+    const result = await filename(m, 'C:\\Downloads', '{title} — {author} ({year})');
+    expect(result).toMatch(/^长标题.*~[a-f0-9]{10} — García-López \(2026\) - SI - S1\.pdf$/);
+    expect(Array.from(result).length).toBeLessThanOrEqual(215);
+  });
+  it('rejects reserved Windows filenames in title-only format', async () => {
+    await expect(filename({ journal: 'Nature', year: '2026', author: 'Xu', title: 'CON' }, '', '{title}')).rejects.toThrow('保留名称');
+  });
+  it('uses configured formats in automatic download decisions', async () => {
+    const s = fixture('nature');
+    const r = await decide(item(s), { ...DEFAULT_SETTINGS, namingTemplate: '{author}_{year}_{title}' }, [s]);
+    expect(r?.proposed).toMatch(/^Zhu_2026_Atmospheric/);
+  });
   it('matches the supplied PNAS example verbatim', async () => {
     const m = fixture('pnas').metadata;
     expect(await filename(m)).toBe('Proc Natl Acad Sci USA - 2018 - Schiro - GoAmazon2014-5 campaign points to deep-inflow approach to deep convection across scales.pdf');

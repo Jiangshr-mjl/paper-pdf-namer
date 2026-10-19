@@ -1,6 +1,8 @@
 import { button, el, heading, request, toast } from './ui';
 import { PRIORITY_ORIGINS, CROSSREF_ORIGIN } from './permissions';
 import type { State } from './store';
+import { DEFAULT_TEMPLATE } from './types';
+import { filename } from './core/naming';
 
 const app = document.getElementById('app')!;
 let activeSection = 'general';
@@ -9,6 +11,33 @@ async function render() {
   const permissions = await chrome.permissions.getAll();
   app.replaceChildren(heading('Name-paper-cloud', '一次授权，之后照常下载。你的文献和记录留在本机。'));
   const example = el('section', '', 'example'); example.append(el('span', '命名格式', 'eyebrow'), el('p', '期刊缩写 - 年份 - 第一作者姓氏 - 题目.pdf'), el('small', '例如：Nature - 2026 - Zhu - Atmospheric CH4 plateau.pdf')); app.append(example);
+  example.replaceChildren(el('h2', '自定义命名格式'));
+  const formatLabel = el('label', '格式模板'); const format = el('input'); format.type = 'text'; format.maxLength = 300;
+  format.value = state.settings.namingTemplate || DEFAULT_TEMPLATE; formatLabel.append(format); example.append(formatLabel);
+  example.append(el('p', '可调整顺序、分隔符，或省略部分字段；必须保留标题。无需填写 .pdf。', 'hint'));
+  const chips = el('div', '', 'template-chips');
+  for (const [key, label] of [['journal', '期刊'], ['year', '年份'], ['author', '作者'], ['title', '标题']]) {
+    chips.append(button(`${label} {${key}}`, () => {
+      const start = format.selectionStart ?? format.value.length, end = format.selectionEnd ?? start;
+      format.setRangeText(`{${key}}`, start, end, 'end'); format.focus(); void previewFormat();
+    }, 'template-chip'));
+  }
+  example.append(chips);
+  const presetLabel = el('label', '常用格式'); const presets = el('select'); presets.setAttribute('aria-label', '常用命名格式');
+  for (const [value, label] of [['', '选择一个预设…'], [DEFAULT_TEMPLATE, '期刊 - 年份 - 作者 - 标题（默认）'], ['{author} - {year} - {title}', '作者 - 年份 - 标题'], ['{year} - {title} - {journal}', '年份 - 标题 - 期刊'], ['{title}', '仅标题']]) { const option = el('option', label); option.value = value; presets.append(option); }
+  presetLabel.append(presets); example.append(presetLabel);
+  const preview = el('output', '', 'preview'); preview.setAttribute('aria-label', '命名格式预览'); preview.setAttribute('aria-live', 'polite'); example.append(el('p', '示例预览', 'hint'), preview);
+  let sequence = 0;
+  async function previewFormat() {
+    const current = ++sequence;
+    try { const name = await filename({ journal: 'Atmos Chem Phys', year: '2026', author: 'Xu', title: 'Cloud vertical structure across China' }, '', format.value); if (current === sequence) { preview.textContent = name; preview.classList.remove('reason'); } }
+    catch (error) { if (current === sequence) { preview.textContent = (error as Error).message; preview.classList.add('reason'); } }
+  }
+  format.addEventListener('input', () => { presets.value = ''; void previewFormat(); });
+  presets.addEventListener('change', () => { if (presets.value) { format.value = presets.value; void previewFormat(); } });
+  const actions = el('div', '', 'inline');
+  actions.append(button('保存命名格式', async () => { await request('SETTINGS', { settings: { namingTemplate: format.value } }); toast('命名格式已保存，下次下载生效'); }, 'primary'), button('恢复默认格式', async () => { await request('SETTINGS', { settings: { namingTemplate: DEFAULT_TEMPLATE } }); format.value = DEFAULT_TEMPLATE; presets.value = DEFAULT_TEMPLATE; await previewFormat(); toast('默认命名格式已恢复'); }));
+  example.append(actions, el('p', '附件仍自动附加 SI / PeerReview 与原附件标识。无论选用何种格式，自动命名前仍会核实四项文献信息。已下载文件不会改名。', 'hint')); void previewFormat();
   const general = el('section', '', 'panel'); general.append(el('h2', '01　自动命名'));
   const toggle = el('label', '', 'check'); const enabled = el('input'); enabled.type = 'checkbox'; enabled.checked = state.settings.enabled;
   enabled.addEventListener('change', () => void request('SETTINGS', { settings: { enabled: enabled.checked } }).then(() => toast('设置已保存')).catch(e => toast(e.message, true)));
@@ -79,8 +108,6 @@ async function render() {
   crossref.querySelector('h2')!.textContent = '元数据补查';
   journals.querySelector('h2')!.textContent = '已核实的期刊缩写';
   privacy.querySelector('h2')!.textContent = '本地记录';
-  example.querySelector('p')!.textContent = '期刊缩写  −  年份  −  作者姓氏  −  题目.pdf';
-  example.querySelector('small')!.textContent = '信息不足时保留原名，并在弹窗中提示。';
   const shell = el('div', '', 'settings-shell'); const nav = el('nav', '', 'sidebar'); nav.setAttribute('aria-label', '设置分类');
   const brand = el('div', 'Name-paper-cloud', 'sidebrand'); const icon = el('img'); icon.src = chrome.runtime.getURL('icons/icon-32.png'); icon.alt = ''; icon.width = 22; icon.height = 22; brand.prepend(icon); nav.append(brand);
   const content = el('div', '', 'settings-content');

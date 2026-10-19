@@ -1,6 +1,6 @@
 import { decide, bounded } from './core/decision';
 import { isPdf } from './core/match';
-import { basename } from './core/naming';
+import { basename, validateTemplate } from './core/naming';
 import { mergeCrossref } from './core/crossref';
 import { doiValue, urlKey } from './core/urls';
 import { readState, updateState } from './store';
@@ -157,6 +157,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     switch (message.type) {
       case 'GET_STATE': return await readState();
       case 'SETTINGS':
+          if (Object.prototype.hasOwnProperty.call(message.settings || {}, 'namingTemplate')) validateTemplate(message.settings.namingTemplate);
         await updateState(s => { s.settings = { ...s.settings, ...message.settings }; });
         return { ok: true };
       case 'SAVE_DRAFT':

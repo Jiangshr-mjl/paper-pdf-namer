@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Name-paper-cloud",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "下载文献时，按期刊缩写、年份、第一作者姓氏及题目自动命名；信息不足时保留原名。",
   "minimum_chrome_version": "120",
   "permissions": ["downloads", "storage", "scripting"],

@@ -5,7 +5,7 @@ import type { Kind, RecordItem } from './types';
 
 const app = document.getElementById('app')!;
 let activeTab = 'recent';
-function editor(record: RecordItem) {
+function editor(record: RecordItem, template?: string) {
   const box = el('form', '', 'editor');
   box.addEventListener('submit', event => event.preventDefault());
   const initial = record.draft || { journal: record.metadata?.journal || '', year: record.metadata?.year || '', author: record.metadata?.author || '', title: record.metadata?.title || '', kind: record.kind, label: record.label };
@@ -31,13 +31,13 @@ function editor(record: RecordItem) {
   const update = async () => {
     const seq = ++version;
     inputs.label.disabled = kind.value === 'Article';
-    try { const name = await filename(draft(), parentPath(record.actual || record.original)); if (seq === version) preview.textContent = name; }
+    try { const name = await filename(draft(), parentPath(record.actual || record.original), template); if (seq === version) preview.textContent = name; }
     catch (error) { if (seq === version) preview.textContent = (error as Error).message; }
   };
   box.addEventListener('input', () => void update()); void update();
   box.append(button('复制规范名称', async () => {
     if (!confirmed.checked) { toast('请先核实并勾选字段确认', true); return; }
-    const values = draft(); const name = await filename(values, parentPath(record.actual || record.original));
+    const values = draft(); const name = await filename(values, parentPath(record.actual || record.original), template);
     await navigator.clipboard.writeText(name);
     await request('SAVE_DRAFT', { id: record.id, draft: values });
     toast('已复制。请在文件管理器中手动重命名已下载文件。');
@@ -95,7 +95,7 @@ async function render() {
       if (record.metadata.doi) source.append(el('p', `DOI：${record.metadata.doi}`, 'hint'));
       card.append(source);
     }
-    const edit = el('details'); edit.append(el('summary', '补全 / 修改并复制名称'), editor(record)); card.append(edit);
+    const edit = el('details'); edit.append(el('summary', '补全 / 修改并复制名称'), el('p', '以下预览使用当前保存的命名格式；不会修改已下载文件。', 'hint'), editor(record, state.settings.namingTemplate)); card.append(edit);
     list.append(card);
   }
   app.append(el('footer', '仅处理下载名称 · 未验证 PDF 内容 · 重名由浏览器加编号'));

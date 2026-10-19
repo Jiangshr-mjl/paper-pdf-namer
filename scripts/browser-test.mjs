@@ -159,8 +159,10 @@ try {
   check('popup shows completed naming status', () => assert.ok(true));
   await ui.setViewportSize({ width: 400, height: 850 });
   await ui.getByRole('tab', {name:/^待处理/}).click();
+  await waitFor(async () => await ui.getByRole('tab', {name:/^待处理/}).getAttribute('aria-selected') === 'true', 'pending tab rendered');
   assert.equal(await ui.locator('.record .success').count(), 0);
   await ui.getByRole('tab', {name:/^最近下载/}).click();
+  await waitFor(async () => await ui.getByRole('tab', {name:/^最近下载/}).getAttribute('aria-selected') === 'true', 'recent tab rendered');
   assert.ok(await ui.locator('.record .success').count()>0);
   assert.equal(await ui.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   check('record filters retain all records and popup fits 400 pixels', () => assert.ok(true));
@@ -175,6 +177,29 @@ try {
   await ui.getByRole('status').filter({ hasText: '已复制' }).waitFor();
   check('copy saves a verified draft without changing the original file', () => assert.ok(true));
   check('no UI JavaScript errors', () => assert.deepEqual(errors, []));
+  await ui.goto(`chrome-extension://${id}/options.html`);
+  await ui.getByLabel('格式模板', {exact:true}).fill('{author}_{year}_{title}');
+  await ui.getByRole('button', {name:'保存命名格式',exact:true}).click();
+  await ui.getByRole('status').filter({hasText:'命名格式已保存'}).waitFor();
+  await ui.getByLabel('格式模板', {exact:true}).fill('{doi}_{title}');
+  await ui.getByRole('button', {name:'保存命名格式',exact:true}).click();
+  await ui.locator('#toast').filter({hasText:'仅支持'}).waitFor();
+  assert.equal((await ui.evaluate(()=>chrome.runtime.sendMessage({type:'GET_STATE'}))).settings.namingTemplate, '{author}_{year}_{title}');
+  await ui.reload();
+  assert.equal(await ui.getByLabel('格式模板',{exact:true}).inputValue(),'{author}_{year}_{title}');
+  r=await download(nature);
+  assert.match(r.actual,/Zhu_2026_Atmospheric/);
+  assert.ok((await readFile(r.actual,'utf8')).startsWith('%PDF-'));
+  r=await download(agu,'#si');
+  assert.match(r.actual,/de Roode_2026_.* - SI - Supporting_Information_S1\.pdf$/);
+  check('custom format persists, rejects invalid edits, and names actual article and SI downloads',()=>assert.ok(true));
+  await ui.setViewportSize({width:1100,height:1100});
+  await ui.screenshot({path:join(runDir,'custom-format-settings.png'),fullPage:true});
+  await ui.goto(`chrome-extension://${id}/popup.html`);
+  const customCard=ui.locator('.record').filter({hasText:'缺少已核实的第一作者姓氏'});
+  await customCard.getByText('补全 / 修改并复制名称',{exact:true}).click();
+  await waitFor(async()=>(await customCard.locator('output').textContent()).startsWith('Zhu_2026_'),'custom manual preview');
+  check('manual editor uses the saved custom format',()=>assert.ok(true));
   const recordCount = (await records()).length;
   await ui.evaluate(() => chrome.runtime.sendMessage({ type: 'SETTINGS', settings: { enabled: false } }));
   await context.close();
@@ -188,7 +213,14 @@ try {
     assert.equal(restored.settings.enabled, false); assert.equal(restored.records.length, recordCount); assert.ok(restored.snapshots.length > 0);
     assert.equal(restored.settings.abbreviations['Example Journal'], 'Ex J');
     assert.ok(restored.records.some(r => r.draft?.author === 'Zhu'));
+    assert.equal(restored.settings.namingTemplate,'{author}_{year}_{title}');
   });
+  await ui.goto(`chrome-extension://${id}/options.html`);
+  await ui.getByRole('button',{name:'恢复默认格式',exact:true}).click();
+  await ui.getByRole('status').filter({hasText:'默认命名格式已恢复'}).waitFor();
+  assert.equal((await ui.evaluate(()=>chrome.runtime.sendMessage({type:'GET_STATE'}))).settings.namingTemplate,'{journal} - {year} - {author} - {title}');
+  check('default format can be restored without clearing other settings',()=>assert.ok(true));
+  await ui.goto(`chrome-extension://${id}/popup.html`);
   // Render the actual earlier ACP test record in the isolated test profile only.
   const realText = await readFile(resolve('test-results/real-acp-1792382330505/download-result.json'), 'utf8').catch(error => { if (error.code === 'ENOENT') return null; throw error; });
   if (realText) {
