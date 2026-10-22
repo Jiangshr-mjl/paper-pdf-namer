@@ -1,4 +1,4 @@
-// Verified abbreviations from the user's paper-pdf-naming skill. Never derive an abbreviation from initials.
+// Verified lookup stays separate from the naming fallback: initials are not journal identity evidence.
 const entries: [string, string[], string[]][] = [
   ['Proc Natl Acad Sci USA', ['Proceedings of the National Academy of Sciences', 'Proceedings of the National Academy of Sciences of the United States of America', 'PNAS'], ['0027-8424', '1091-6490']],
   ['Atmos Chem Phys', ['Atmospheric Chemistry and Physics'], ['1680-7316', '1680-7324']],
@@ -10,6 +10,11 @@ const entries: [string, string[], string[]][] = [
   ['Nature', ['Nature'], ['0028-0836', '1476-4687']]
 ];
 export const journalKey = (s: string) => s.normalize('NFC').toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+export function journalInitials(full: string): string {
+  // Include every word (including "of", "and", "the"); punctuation/hyphens separate words.
+  const words = full.normalize('NFC').match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) || [];
+  return words.map(word => Array.from(word)[0]).join('').toUpperCase();
+}
 export function abbreviation(full: string, issn: string[] = [], custom: Record<string, string> = {}, supplied = ''): string {
   const keys = [full, ...issn].map(journalKey);
   const override = Object.entries(custom).find(([key]) => keys.includes(journalKey(key)));

@@ -14,11 +14,11 @@
 
 ## 安装：解压 → 加载 → 授权
 
-当前版本为 **v0.1.7**，尚未上架扩展商店，需要手动加载一次。
+最新公开发行版为 **v0.1.8**，尚未上架扩展商店，需要手动加载一次。
 
 ### 第一步：解压安装包
 
-前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/tag/v0.1.7)，下载 `paper-pdf-namer-0.1.7.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
+前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/tag/v0.1.8)，下载 `paper-pdf-namer-0.1.8.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
 
 - 解压后应能看到 `manifest.json`、`popup.html`、`icons` 等文件或文件夹。
 - 不要直接选择 ZIP 文件，也不要选择包裹在外面的上一级文件夹。
@@ -144,6 +144,10 @@ ACP 的标准 PDF 直链也可尝试自动命名；其他网站建议先打开�
 不是。它表示下载完成后的文件名符合建议，不代表插件验证过 PDF 的页数、首页或内容。
 
 ### 怎样添加期刊缩写？
+
+从 v0.1.8 起，找不到已核实缩写时，会自动取期刊名称各单词的首字母并转为大写，继续命名。例如 `Example Journal of Climate` → `EJOC`；`of`、`and`、`the` 也计入，连字符和标点作为分隔符。记录的“查看元数据来源”会注明“自动生成”。已有缩写和手动映射仍优先使用。
+
+如果连期刊名称也没有，则无法生成首字母；缺少作者、年份、标题或来源冲突仍会保留原名。
 
 在设置页的 **“期刊缩写”** 中，每行填写一个已核实的映射，再点击 **“保存缩写表”**。例如：
 

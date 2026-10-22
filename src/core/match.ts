@@ -1,6 +1,6 @@
 import { TTL, type DownloadLike, type Kind, type Metadata, type Snapshot } from '../types';
 import { doiFromUrl, urlKey, isAmsArticlePdf } from './urls';
-import { abbreviation } from './journals';
+import { abbreviation, journalInitials } from './journals';
 export function isPdf(item: DownloadLike): boolean {
   if (item.mime && !['application/pdf', 'application/octet-stream', 'binary/octet-stream', ''].includes(item.mime.toLowerCase().split(';')[0])) return false;
   return item.mime.toLowerCase().split(';')[0] === 'application/pdf' || /\.pdf$/i.test(item.filename);
@@ -35,10 +35,14 @@ export function matchDownload(item: DownloadLike, snapshots: Snapshot[], now = D
   return { match: { ...pool[0], metadata: { ...pool[0].metadata, issues: problems } } };
 }
 export function readyMetadata(m: Metadata, custom: Record<string, string>): { metadata: Metadata; reasons: string[] } {
-  const result = { ...m, journal: abbreviation(m.journalFull, m.issn, custom, m.journal) };
+  const result = { ...m, sources: { ...m.sources }, journal: abbreviation(m.journalFull, m.issn, custom, m.journal) };
+  if (!result.journal) {
+    result.journal = journalInitials(m.journalFull);
+    if (result.journal) result.sources.journal = '期刊全名各单词首字母（自动生成，非已核实缩写）';
+  }
   const reasons = [...m.issues];
   for (const [key, label] of [['journal', '期刊缩写'], ['year', '引用年份'], ['author', '第一作者姓氏'], ['title', '标题']] as const) {
-    if (!result[key]) reasons.push(`缺少已核实的${label}`);
+    if (!result[key]) reasons.push(key === 'journal' ? '缺少期刊名称及缩写，无法生成首字母缩写' : `缺少已核实的${label}`);
   }
   return { metadata: result, reasons };
 }

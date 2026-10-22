@@ -80,6 +80,7 @@ async function render() {
   app.append(crossref);
 
   const journals = el('section', '', 'panel'); journals.append(el('h2', '04　已核实的期刊缩写'), el('p', '每行填写“期刊全名或 ISSN = 通行英文缩写”。仅填写你已核实的结果，缩写句点会自动移除。', 'muted'));
+  journals.append(el('p', '找不到已核实缩写时，自动使用期刊名称各单词首字母（大写，包含 of、and、the），例如 Example Journal of Climate → EJOC。你填写的缩写优先使用。', 'hint'));
   const overrides = el('textarea'); overrides.rows = 6; overrides.setAttribute('aria-label', '期刊缩写映射'); overrides.placeholder = 'Nature Communications = Nat Commun';
   overrides.value = Object.entries(state.settings.abbreviations).map(([key, value]) => `${key} = ${value}`).join('\n'); journals.append(overrides);
   journals.append(button('保存缩写表', async () => {

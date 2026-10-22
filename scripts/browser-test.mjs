@@ -31,6 +31,9 @@ const server = createServer((req, res) => {
   if (path.startsWith('/article/')) {
     const name = path.split('/').pop();
     let html = fixtures[name];
+    if (name === 'unknown-journal') html = fixtures.nature.replaceAll('test-nature', 'test-unknown-journal')
+      .replace('content="Nature"', 'content="Example Journal of Climate"').replace('content="0028-0836"', 'content=""')
+      .replace(/<a id="(?:si|review)"[^>]*>.*?<\/a>/g, '');
     if (name === 'missing') html = fixtures.nature.replace(/<script type="application\/ld\+json">.*?<\/script>/s, '').replaceAll('test-nature', 'test-missing');
     if (name === 'redirect') html = fixtures.ams.replaceAll('/view/journals/clim/39/1/test-ams.pdf', '/redirect.pdf');
     if (name === 'cancel') html = fixtures.nature.replaceAll('/articles/test-nature.pdf', '/slow.pdf');
@@ -116,6 +119,11 @@ try {
   assert.ok((await readFile(r.actual, 'utf8')).startsWith('%PDF-'));
   r = await download(nature);
   check('same-name downloads use browser uniquify', () => assert.match(r.actual, / \(1\)\.pdf$/));
+  const unknownJournal = await open('unknown-journal'); const unknownRecord = await download(unknownJournal);
+  check('unknown journal uses word initials on disk with a generated-source label', () => {
+    assert.match(unknownRecord.actual, /EJOC - 2026 - Zhu - Atmospheric CH4/);
+    assert.equal(unknownRecord.reason, ''); assert.match(unknownRecord.metadata.sources.journal, /自动生成/);
+  });
   r = await download(nature, '#si');
   check('supplement is linked to its article', () => assert.match(r.actual, / - SI - 41586_MOESM1_ESM\.pdf$/));
   r = await download(nature, '#review');

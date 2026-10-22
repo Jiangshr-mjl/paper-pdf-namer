@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import { webcrypto } from 'node:crypto';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { filename, clean, validateTemplate } from '../src/core/naming';
-import { abbreviation } from '../src/core/journals';
+import { abbreviation, journalInitials } from '../src/core/journals';
 import { extract, readableTitle } from '../src/core/extract';
 import { mergeCrossref } from '../src/core/crossref';
-import { matchDownload, isPdf } from '../src/core/match';
+import { matchDownload, isPdf, readyMetadata } from '../src/core/match';
 import { decide, bounded } from '../src/core/decision';
 import { doiFromUrl } from '../src/core/urls';
 import { DEFAULT_SETTINGS, TTL, type DownloadLike, type Snapshot } from '../src/types';
@@ -139,6 +139,42 @@ describe('Crossref DOI-only reconciliation', () => {
   });
 });
 describe('download identity and fail-open decisions', () => {
+  it.each([
+    ['Example Journal of Climate', 'EJOC'],
+    ['  Earth-System & Atmospheric Research  ', 'ESAR'],
+    ['Études of the Atmosphere', 'ÉOTA'],
+    ["Earth's Climate", 'EC'],
+    ['Nature Communications', 'NC'],
+    ['---', ''],
+  ])('generates all word initials for %s', (full, expected) => {
+    expect(journalInitials(full)).toBe(expected);
+  });
+  it('names unknown journals and labels the fallback without modifying cached metadata', async () => {
+    const s = fixture('nature'); Object.assign(s.metadata, { journal: '', journalFull: 'Example Journal of Climate', issn: [] });
+    delete s.metadata.sources.journal;
+    const result = await decide(item(s), DEFAULT_SETTINGS, [s]);
+    expect(result?.proposed).toMatch(/^EJOC - /);
+    expect(result?.reason).toBe('');
+    expect(result?.metadata?.sources.journal).toContain('自动生成');
+    expect(s.metadata.journal).toBe(''); expect(s.metadata.sources.journal).toBeUndefined();
+  });
+  it('prefers verified and custom abbreviations, and keeps equal initials from masking journal conflicts', () => {
+    const m = fixture('nature').metadata;
+    expect(readyMetadata(m, {}).metadata.journal).toBe('Nature');
+    Object.assign(m, { journal: '', journalFull: 'Example Journal', issn: [] });
+    expect(readyMetadata(m, { 'Example Journal': 'Ex J' }).metadata.journal).toBe('Ex J');
+    m.journal = 'Ex Journal'; expect(readyMetadata(m, {}).metadata.journal).toBe('Ex Journal');
+    m.journal = '';
+    expect(mergeCrossref(m, { DOI: m.doi, 'container-title': ['Earth Journal'] }, {}).issues).toContain('出版方与 Crossref 期刊冲突');
+  });
+  it('still requires a journal name, surname and conflict-free metadata', async () => {
+    const s = fixture('nature'); Object.assign(s.metadata, { journal: '', journalFull: '', issn: [] });
+    expect((await decide(item(s), DEFAULT_SETTINGS, [s]))?.reason).toContain('缺少期刊名称');
+    s.metadata.journalFull = 'Example Journal'; s.metadata.author = '';
+    expect((await decide(item(s), DEFAULT_SETTINGS, [s]))?.reason).toContain('第一作者姓氏');
+    s.metadata.author = 'Zhu'; s.metadata.issues = ['标题冲突'];
+    expect((await decide(item(s), DEFAULT_SETTINGS, [s]))?.proposed).toBeUndefined();
+  });
   it('matches each concurrent download to its own paper', async () => {
     const a = fixture('agu'), b = fixture('nature');
     const [ra, rb] = await Promise.all([decide(item(a), DEFAULT_SETTINGS, [a, b]), decide(item(b), DEFAULT_SETTINGS, [a, b])]);
