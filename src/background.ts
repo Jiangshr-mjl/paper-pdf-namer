@@ -2,10 +2,11 @@ import { decide, bounded } from './core/decision';
 import { isPdf } from './core/match';
 import { basename, validateTemplate } from './core/naming';
 import { mergeCrossref } from './core/crossref';
-import { doiValue, urlKey } from './core/urls';
+import { doiValue, urlKey, annualReviewsPdfTarget } from './core/urls';
 import { readState, updateState } from './store';
 import { CROSSREF_ORIGIN, syncScripts } from './permissions';
 import type { RecordItem, Snapshot } from './types';
+import { emptyMetadata } from './types';
 import { copernicusTarget, parsePublisherPage } from './core/publisher';
 
 const lookups = new Map<string, Promise<unknown>>();
@@ -16,12 +17,30 @@ function synchronize(inject = false) {
   permissionQueue = permissionQueue.catch(() => {}).then(async () => {
     await syncScripts(inject);
     // PDF viewers cannot host our content script. Also warm PDFs already open when permission is granted.
-    const tabs = await chrome.tabs.query({ url: ['https://acp.copernicus.org/articles/*'] });
+    const tabs = await chrome.tabs.query({ url: ['https://acp.copernicus.org/articles/*', 'https://www.annualreviews.org/docserver/fulltext/*'] });
     for (const tab of tabs) if (tab.url) void preparePdf(tab.url).catch(() => {});
   });
   void permissionQueue.catch(console.error);
 }
 async function preparePdf(url: string): Promise<void> {
+  const annual = annualReviewsPdfTarget(url);
+  if (annual) {
+    const epoch = generation;
+    if (!await chrome.permissions.contains({ origins: [annual.origin + '/*'] })) return;
+    const state = await readState();
+    if (!state.settings.enabled || state.snapshots.some(s => s.metadata.doi === annual.doi)) return;
+    const snapshot: Snapshot = {
+      pageUrl: annual.page, canonicalUrl: annual.page, capturedAt: Date.now(),
+      metadata: { ...emptyMetadata(), doi: annual.doi },
+      links: [{ url: annual.pdf, kind: 'Article', label: '' }],
+    };
+    const saved = await updateState(s => {
+      if (epoch === generation && s.settings.enabled && !s.snapshots.some(x => x.metadata.doi === annual.doi)) s.snapshots.push(snapshot);
+    });
+    const current = saved.snapshots.find(s => s.metadata.doi === annual.doi);
+    if (current && epoch === generation) void warm(current, epoch).catch(console.error);
+    return;
+  }
   const target = copernicusTarget(url);
   if (!target) return;
   const epoch = generation;

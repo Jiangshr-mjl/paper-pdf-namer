@@ -14,11 +14,11 @@
 
 ## 安装：解压 → 加载 → 授权
 
-最新公开发行版为 **v0.1.8**，尚未上架扩展商店，需要手动加载一次。
+最新公开发行版为 **v0.1.9**，尚未上架扩展商店，需要手动加载一次。
 
 ### 第一步：解压安装包
 
-前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/tag/v0.1.8)，下载 `paper-pdf-namer-0.1.8.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
+前往 [下载安装包](https://github.com/Jiangshr-mjl/paper-pdf-namer/releases/tag/v0.1.9)，下载 `paper-pdf-namer-0.1.9.zip`，解压到一个固定文件夹，例如 `D:\BrowserExtensions\PaperPDF`。
 
 - 解压后应能看到 `manifest.json`、`popup.html`、`icons` 等文件或文件夹。
 - 不要直接选择 ZIP 文件，也不要选择包裹在外面的上一级文件夹。
@@ -111,6 +111,10 @@
 - **其他文件**：非 PDF 附件保持原名。
 
 ACP 的标准 PDF 直链也可尝试自动命名；其他网站建议先打开文章页。PDF 查看器内置下载按钮、另存为以及部分网站跳转仍需按实际场景确认。
+
+**v0.1.9 支持 Annual Reviews 标准正文链接**，包括 `/docserver/fulltext/…/annurev-…pdf` 后带临时访问参数的形式。更新后，请在设置的网站授权中添加 `https://www.annualreviews.org`，开启并授权 DOI 补查，再刷新文章页或 PDF 页下载。直接打开受支持的 PDF 也会尝试按精确 DOI 补全资料；首次网络请求较慢时可能保留原名，稍候再试。插件不修改或续期下载链接，过期链接须回文章页重新获取。
+
+用户于 2026-10-23 确认：重新加载 0.1.9 并授权后，论文 *Cloud-Top Entrainment in Stratocumulus Clouds* 已能正常重命名。此为用户实际下载反馈；合成页面的浏览器落盘测试另行记录，不代表全部 Annual Reviews 链接或下载入口均已验证。
 
 **v0.1.7 修复了本次 AMS 论文自动命名问题。** 用户于 2026-10-19 确认：重新加载 0.1.7 并刷新文章页后，[这篇 AMS 论文](https://journals.ametsoc.org/view/journals/apme/42/9/1520-0450_2003_042_1273_pacoau_2.0.co_2.xml)成功重命名。该结果是用户实际下载反馈，不代表所有 AMS 页面或下载入口均已验证。
 

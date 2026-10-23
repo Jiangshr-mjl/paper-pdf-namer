@@ -1,6 +1,6 @@
 import { emptyMetadata, type Kind, type PaperLink, type Snapshot } from '../types';
 import { abbreviation } from './journals';
-import { doiFromUrl, doiValue, urlKey, isAmsArticlePdf } from './urls';
+import { doiFromUrl, doiValue, urlKey, isAmsArticlePdf, annualReviewsPdfTarget } from './urls';
 
 export function readableTitle(raw: string, doc: Document): { text: string; unsafe: boolean } {
   const el = doc.createElement('template'); el.innerHTML = raw;
@@ -52,7 +52,7 @@ export function classifyLink(anchor: HTMLAnchorElement, primary: Set<string>, pa
     try { label = decodeURIComponent(url.pathname.split('/').pop() || '').replace(/\.pdf$/i, ''); } catch { /* unresolved label */ }
     if (!/\.pdf$/i.test(url.pathname)) label = anchor.getAttribute('download')?.replace(/\.pdf$/i, '') || '';
   }
-  return { url: href, kind, label };
+  return { url: annualReviewsPdfTarget(href)?.pdf || href, kind, label };
 }
 export function extract(doc: Document, pageUrl: string): Snapshot | undefined {
   const m = emptyMetadata();
@@ -71,6 +71,7 @@ export function extract(doc: Document, pageUrl: string): Snapshot | undefined {
     const id = node.identifier;
     m.doi = doiValue(typeof id === 'string' ? id : id?.value || '') || doiFromUrl(node.sameAs || '');
   }
+  if (!m.doi && new URL(pageUrl).origin === 'https://www.annualreviews.org') m.doi = doiFromUrl(pageUrl);
   m.volume = get('citation_volume', 'prism.volume');
   if (node?.isPartOf) {
     let part = node.isPartOf;
@@ -114,7 +115,7 @@ export function extract(doc: Document, pageUrl: string): Snapshot | undefined {
     try {
       const url = new URL(value, pageUrl);
       if (!['https:', 'http:'].includes(url.protocol)) continue;
-      primary.add(urlKey(url.href)); links.push({ url: url.href, kind: 'Article', label: '' });
+        primary.add(urlKey(url.href)); links.push({ url: annualReviewsPdfTarget(url.href)?.pdf || url.href, kind: 'Article', label: '' });
     } catch { /* malformed publisher URL */ }
   }
   for (const a of doc.querySelectorAll<HTMLAnchorElement>('a[href]')) {

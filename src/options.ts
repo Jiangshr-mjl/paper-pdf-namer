@@ -49,7 +49,7 @@ async function render() {
     const granted = await chrome.permissions.request({ origins: [...PRIORITY_ORIGINS, CROSSREF_ORIGIN] });
     if (granted) { await request('SYNC'); toast('授权完成，请刷新文章页'); await render(); } else toast('未授权，仍可正常下载');
   }, 'primary'));
-  sites.append(el('p', '重点平台：AGU / Wiley、AMS、Copernicus、Nature、PNAS。', 'hint'));
+  sites.append(el('p', '重点平台：AGU / Wiley、AMS、Copernicus、Nature、PNAS、Annual Reviews。', 'hint'));
   const custom = el('div', '', 'inline'); const site = el('input'); site.type = 'url'; site.placeholder = '其他平台，例如 https://example.org'; site.setAttribute('aria-label', '其他网站地址');
   custom.append(site, button('授权此网站', async () => {
     const u = new URL(site.value);

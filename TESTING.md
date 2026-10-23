@@ -1,6 +1,25 @@
 # 验证结果
 
-最近测试日期：2026-10-22（Asia/Shanghai）；0.1.7 及更早版本记录日期为 2026-10-19。
+最近测试日期：2026-10-23（Asia/Shanghai）；0.1.8 记录日期为 2026-10-22，0.1.7 及更早版本为 2026-10-19。
+
+## v0.1.9 Annual Reviews 签名 PDF 适配
+
+- 108 项单元测试通过，新增 17 项覆盖已知临时参数规范化、精确 DOI、文章 URL 无 DOI 标签的补查入口、原始/最终 URL 重定向关联、不同文章、附件/图片、外域/协议/凭据/未知参数、显式分类及来源冲突。
+- 后台测试验证：直接 PDF 在授权后仅请求精确 DOI 的 Crossref 记录，使用 `Mellado`、2017、`Annu Rev Fluid Mech` 命名；缺少网站或 Crossref 授权时不发请求且保留原名；不保存用户临时访问令牌。
+- 类型检查和生产构建通过；Edge 与 Chrome 各 24 项集成检查通过，含 Annual Reviews 合成页面的签名 PDF 实际落盘，及已有的并发、附件、重名、重定向、休眠、设置/自定义模板、重启验证。
+- Edge：`test-results/browser-1792737329578/results.json`；Chrome：`test-results/browser-1792737329597/results.json`。
+- 2026-10-23 发布前复跑：108 项单元测试、类型检查与构建通过；发布产物的 JS、CSS、HTML 和图标逐文件与上述两次浏览器测试副本核对一致，未重复运行浏览器下载。
+- 真实公开 Crossref API 返回 200，确认 DOI `10.1146/annurev-fluid-010816-060231`、题目 *Cloud-Top Entrainment in Stratocumulus Clouds*、姓氏 Mellado、卷 49、正式印刷日期 2017-01-03、缩写 `Annu. Rev. Fluid Mech.`。
+- 实网范围限制：出版方 HTML 直接请求返回 403。浏览器测试在真实域名下拦截返回合成 HTML 和测试 PDF，该自动化测试未验证真实论文全文下载；用户实测结果见下文。首次浏览器模拟签名 302 跳转未产生下载事件，改为直接签名下载落盘测试；签名参数变更/重定向身份逻辑由单元测试验证，不能把本地模拟说成出版方实网重定向通过。
+- 更新到 0.1.9 后需重新加载插件，授权 `https://www.annualreviews.org` 和 DOI 补查，再刷新文章/PDF 页。原链接已过期时须在文章页获取新链接；插件不续期签名。已按下述用户反馈完成本次论文的实测记录，并随 v0.1.9 发布源码和安装包。
+
+### 用户实网复验：通过
+
+- 日期：2026-10-23（Asia/Shanghai）；扩展版本 0.1.9。用户本次反馈未单独说明浏览器型号及下载入口。
+- 论文：*Cloud-Top Entrainment in Stratocumulus Clouds*；DOI：`10.1146/annurev-fluid-010816-060231`；正式卷期年份 2017。
+- [文章页](https://www.annualreviews.org/content/journals/10.1146/annurev-fluid-010816-060231)；正文路径 `/docserver/fulltext/fluid/49/1/annurev-fluid-010816-060231.pdf`。不保存临时访问参数。
+- 用户原文：“已重新加载 0.1.9 并授权，Annual Reviews 这篇论文现在能正常重命名了。”据此确认本次报告的论文下载命名问题已闭环。
+- 证据类型为用户实测反馈；未另行收集实际文件名截图、独立检查磁盘文件或 PDF 内容，也未确认原生查看器/另存为等全部入口。不得扩大为所有 Annual Reviews 下载场景或出版方签名重定向均已实网验证。
 
 ## v0.1.8 未知期刊首字母缩写
 

@@ -1,5 +1,17 @@
 export function urlKey(value: string): string {
-  try { const u = new URL(value); u.hash = ''; return u.href; } catch { return ''; }
+  try { const u = new URL(value); u.hash = ''; return annualReviewsPdfTarget(value)?.pdf || u.href; } catch { return ''; }
+}
+// Normalize only the observed publisher body route and its known access parameters.
+// Do not remove arbitrary queries globally or reinterpret supplement/figure filenames.
+export function annualReviewsPdfTarget(value: string): { pdf: string; doi: string; page: string; origin: string } | undefined {
+  try {
+    const u = new URL(value);
+    if (u.origin !== 'https://www.annualreviews.org' || u.username || u.password) return;
+    const m = u.pathname.match(/^\/docserver\/fulltext\/([a-z]+)\/\d+\/\d+\/(annurev-\1-\d{6}-\d{6})\.pdf$/);
+    if (!m || Array.from(u.searchParams.keys()).some(k => !['expires', 'id', 'accname', 'checksum'].includes(k))) return;
+    const doi = `10.1146/${m[2]}`;
+    return { pdf: u.origin + u.pathname, doi, page: `${u.origin}/content/journals/${doi}`, origin: u.origin };
+  } catch { return; }
 }
 // AMS article routes retain journal/volume/issue/article identity when serving a PDF.
 // Restrict this to the publisher host and exact article stem, never references or figures.
@@ -22,7 +34,13 @@ export function doiValue(value: string): string {
 }
 export function doiFromUrl(value: string): string {
   try {
+    const annual = annualReviewsPdfTarget(value);
+    if (annual) return annual.doi;
     const u = new URL(value);
+    if (u.origin === 'https://www.annualreviews.org' && !u.username && !u.password && !u.search) {
+      const article = u.pathname.match(/^\/content\/journals\/(10\.1146\/annurev-[a-z]+-\d{6}-\d{6})$/);
+      if (article) return article[1];
+    }
     if (/^(dx\.)?doi\.org$/.test(u.hostname)) return doiValue(u.pathname.slice(1));
     // Only explicit publisher DOI routes, never an arbitrary DOI substring or a DOI embedded in an attachment filename.
     const path = decodeURIComponent(u.pathname);

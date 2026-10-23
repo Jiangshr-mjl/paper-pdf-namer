@@ -31,6 +31,31 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('MV3 download and storage lifecycle', () => {
+  it('names an authorized direct Annual Reviews PDF using only its exact DOI query', async () => {
+    data.snapshots = []; data.settings.crossref = true;
+    const doi = '10.1146/annurev-fluid-010816-060231';
+    const url = 'https://www.annualreviews.org/docserver/fulltext/fluid/49/1/annurev-fluid-010816-060231.pdf?expires=1&id=test&accname=guest&checksum=private-test-token';
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ message: {
+      DOI: doi, type: 'journal-article', title: ['Cloud-Top Entrainment in Stratocumulus Clouds'],
+      author: [{ family: 'Mellado' }], 'container-title': ['Annual Review of Fluid Mechanics'],
+      'short-container-title': ['Annu. Rev. Fluid Mech.'], volume: '49', 'published-print': { 'date-parts': [[2017, 1]] },
+    } }) }); vi.stubGlobal('fetch', fetchMock);
+    const d = Object.assign(download(1), { url, finalUrl: url, referrer: '' });
+    const cb = vi.fn(); listeners.determine(d, cb); await settle();
+    expect(cb).toHaveBeenCalledExactlyOnceWith({ filename: 'Annu Rev Fluid Mech - 2017 - Mellado - Cloud-Top Entrainment in Stratocumulus Clouds.pdf', conflictAction: 'uniquify' });
+    expect(fetchMock).toHaveBeenCalledWith('https://api.crossref.org/works/10.1146%2Fannurev-fluid-010816-060231', expect.objectContaining({ credentials: 'omit', referrerPolicy: 'no-referrer' }));
+    expect(JSON.stringify(data)).not.toContain('private-test-token');
+  });
+  it.each(['site', 'crossref'] as const)('does not fetch Annual Reviews metadata without %s authorization', async missing => {
+    data.snapshots = []; data.settings.crossref = true;
+    vi.mocked(chrome.permissions.contains as (permissions: chrome.permissions.Permissions) => Promise<boolean>)
+      .mockImplementation(async p => !p.origins?.includes(missing === 'site' ? 'https://www.annualreviews.org/*' : 'https://api.crossref.org/*'));
+    const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);
+    const url = 'https://www.annualreviews.org/docserver/fulltext/fluid/49/1/annurev-fluid-010816-060231.pdf';
+    const d = Object.assign(download(1), { url, finalUrl: url, referrer: '' });
+    const cb = vi.fn(); listeners.determine(d, cb); await settle();
+    expect(cb).toHaveBeenCalledExactlyOnceWith(); expect(fetchMock).not.toHaveBeenCalled();
+  });
   it('waits briefly for exact DOI metadata when download races the page lookup', async () => {
     data.settings.crossref = true;
     const s = snapshot();

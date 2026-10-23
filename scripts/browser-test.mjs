@@ -14,7 +14,7 @@ await mkdir(join(runDir, 'profile', 'Default'), { recursive: true });
 await writeFile(join(runDir, 'profile', 'Default', 'Preferences'), JSON.stringify({ download: { default_directory: downloads, prompt_for_download: false, directory_upgrade: true }, plugins: { always_open_pdf_externally: true } }));
 await cp(resolve('dist'), extension, { recursive: true });
 const manifest = JSON.parse(await readFile(join(extension, 'manifest.json'), 'utf8'));
-manifest.host_permissions = ['http://127.0.0.1/*'];
+manifest.host_permissions = ['http://127.0.0.1/*', 'https://www.annualreviews.org/*'];
 await writeFile(join(extension, 'manifest.json'), JSON.stringify(manifest, null, 2));
 const fixtures = {};
 for (const name of ['nature', 'pnas', 'ams', 'agu', 'copernicus']) fixtures[name] = await readFile(resolve('tests/fixtures', `${name}.html`), 'utf8');
@@ -123,6 +123,24 @@ try {
   check('unknown journal uses word initials on disk with a generated-source label', () => {
     assert.match(unknownRecord.actual, /EJOC - 2026 - Zhu - Atmospheric CH4/);
     assert.equal(unknownRecord.reason, ''); assert.match(unknownRecord.metadata.sources.journal, /自动生成/);
+  });
+  // Synthetic page/PDF served at the real publisher origin via interception, not a live publisher download.
+  const annualPage = 'https://www.annualreviews.org/content/journals/10.1146/annurev-fluid-010816-060231';
+  const annualPdf = 'https://www.annualreviews.org/docserver/fulltext/fluid/49/1/annurev-fluid-010816-060231.pdf';
+  await context.route('https://www.annualreviews.org/**', async route => {
+    const url = new URL(route.request().url());
+    if (url.pathname.startsWith('/content/journals/')) {
+      await route.fulfill({ contentType: 'text/html', body: `<meta name="citation_title" content="Cloud-Top Entrainment in Stratocumulus Clouds"><meta name="citation_journal_title" content="Annual Review of Fluid Mechanics"><meta name="citation_author_lastname" content="Mellado"><meta name="citation_publication_date" content="2017/01/03"><meta name="citation_volume" content="49"><meta name="citation_doi" content="10.1146/annurev-fluid-010816-060231"><a id="body" href="${annualPdf}?expires=1&id=test&accname=guest&checksum=old">PDF</a>` });
+    } else {
+      await route.fulfill({ contentType: 'application/pdf', headers: { 'Content-Disposition': 'attachment; filename="annual.pdf"' }, body: pdf() });
+    }
+  });
+  const annual = await context.newPage(); await annual.goto(annualPage);
+  await waitFor(async () => (await ui.evaluate(() => chrome.runtime.sendMessage({ type: 'GET_STATE' }))).snapshots.some(s => s.pageUrl === annualPage), 'Annual Reviews snapshot');
+  const annualRecord = await download(annual);
+  check('Annual Reviews signed URL names the downloaded PDF using the article DOI', () => {
+    assert.match(annualRecord.actual, /AROFM - 2017 - Mellado - Cloud-Top Entrainment in Stratocumulus Clouds\.pdf$/);
+    assert.equal(annualRecord.reason, '');
   });
   r = await download(nature, '#si');
   check('supplement is linked to its article', () => assert.match(r.actual, / - SI - 41586_MOESM1_ESM\.pdf$/));

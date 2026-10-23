@@ -1,6 +1,6 @@
 export const PRIORITY_ORIGINS = [
   'https://*.wiley.com/*', 'https://journals.ametsoc.org/*', 'https://*.copernicus.org/*',
-  'https://*.nature.com/*', 'https://*.pnas.org/*'
+  'https://*.nature.com/*', 'https://*.pnas.org/*', 'https://www.annualreviews.org/*'
 ];
 export const CROSSREF_ORIGIN = 'https://api.crossref.org/*';
 export async function syncScripts(inject = false): Promise<void> {
